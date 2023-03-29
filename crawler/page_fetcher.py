@@ -17,7 +17,10 @@ class PageFetcher(Thread):
         :return: Conteúdo em binário da URL passada como parâmetro, ou None se o conteúdo não for HTML
         """
 
-        response = None
+        response = requests.get(obj_url.geturl(), headers={'User-Agent': self.obj_scheduler.usr_agent})
+
+        if 'text/html' not in response.headers.get('Content-Type'):
+            return None
 
         return response.content
 
@@ -26,9 +29,13 @@ class PageFetcher(Thread):
         Retorna os links do conteúdo bin_str_content da página já requisitada obj_url
         """
         soup = BeautifulSoup(bin_str_content, features="lxml")
-        for link in soup.select(None):
-            obj_new_url = None
-            new_depth = None
+        for link in soup.select("a"):
+            obj_new_url = urlparse(urljoin(obj_url.geturl(), link.get('href')))
+            
+            if obj_new_url.netloc == obj_url.netloc:
+                new_depth = depth + 1
+            else:
+                new_depth = 0
 
             yield obj_new_url, new_depth
 
@@ -36,7 +43,7 @@ class PageFetcher(Thread):
         """
         Coleta uma nova URL, obtendo-a do escalonador
         """
-        pass
+        
 
     def run(self):
         """
